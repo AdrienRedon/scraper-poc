@@ -1,16 +1,15 @@
 const express = require('express');
 const fs = require('fs');
-const request = require('request');
+const request = require('request-promise');
 const cheerio = require('cheerio');
 const q = require('q');
 const app = express();
 
 app.get('/scrape/club/:club_id/week/:week', function(req, res){
 
+    let result = '';
     q.fcall(function() {
-        fs.writeFile('output.json', '[', function(err) {
-            console.log('open array');
-        })
+        result += '[';
     }).then(function() {
 
         q.fcall(function() {
@@ -21,9 +20,7 @@ app.get('/scrape/club/:club_id/week/:week', function(req, res){
                 },
             };
 
-            console.log('https://www.fff.fr/la-vie-des-clubs/' + req.params.club_id + '/agenda/semaine-' + req.params.week)
-
-            request(options, function(error, response, html){
+            request (options, function(error, response, html){
                 let json = {championnat: "", date: "", team1: "", team2: "", score: ""}
                 if(!error){
                     const $ = cheerio.load(html)
@@ -41,30 +38,25 @@ app.get('/scrape/club/:club_id/week/:week', function(req, res){
                         championnat = data.text();
 
                         if (championnat == 'EXCELLENCE SENIORS - POULE A') {
-                            json.championnat = championnat
-                            json.date = data.next().find('h4').text()
-                            json.team1 = data.next().find('.eqleft > a').text()
-                            json.team2 = data.next().find('.eqright > a').text()
-                            json.score = data.next().find('.score > .message').text()
+                            json.championnat = championnat;
+                            json.date = data.next().find('h4').text();
+                            json.team1 = data.next().find('.eqleft > a').text();
+                            json.team2 = data.next().find('.eqright > a').text();
+                            json.score = data.next().find('.score > .message').text();
 
-                            fs.appendFile('output.json', JSON.stringify(json, null, 4) + ',', function(err){
-                                console.log(json)
-                                console.log('File successfully written! - Check your project directory for the output.json file');
-                            })
+                            result += JSON.stringify(json, null, 4) + ',';
                         }
                     })
                 }
+            }).then(function() {
+                result += ']';
+                res.send(result);
             })
 
-        }).then(function() {
-            fs.appendFile('output.json', ']', function(err) {
-                console.log('close array');
-            })            
         })
 
     })
 
-        
 })
 
     
