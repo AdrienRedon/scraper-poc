@@ -7,6 +7,8 @@ const app = express();
 
 app.get('/scrape/club/:club_id/week/:week', function(req, res){
 
+    res.setHeader('Content-Type', 'application/json');
+
     let result = '';
     q.fcall(function() {
         result += '[';
@@ -48,6 +50,7 @@ app.get('/scrape/club/:club_id/week/:week', function(req, res){
             })
         }
     }).then(function() {
+        result = result.slice(0, -1);
         result += ']';
         res.send(result);
     })
