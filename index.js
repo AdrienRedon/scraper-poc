@@ -1,58 +1,75 @@
-var express = require('express');
-var fs = require('fs');
-var request = require('request');
-var cheerio = require('cheerio');
-var rp = require('request-promise');
-var app     = express();
+const express = require('express');
+const fs = require('fs');
+const request = require('request');
+const cheerio = require('cheerio');
+const q = require('q');
+const app = express();
 
-app.get('/scrape', function(req, res){
+app.get('/scrape/club/:club_id/week/:week', function(req, res){
 
-    const json = { championnat: "", date : "", team1 : "", team2 : "", score: ""}
-    
-    url = 'https://www.fff.fr/la-vie-des-clubs/13313/agenda';
+    q.fcall(function() {
+        fs.writeFile('output.json', '[', function(err) {
+            console.log('open array');
+        })
+    }).then(function() {
 
-    var options = {
-    uri: 'https://www.fff.fr/la-vie-des-clubs/13313/agenda',
-    headers: {
-        'User-Agent': 'Request-Promise'
-    },
-};
+        q.fcall(function() {
+            const options = {
+                uri: 'https://www.fff.fr/la-vie-des-clubs/' + req.params.club_id + '/agenda/semaine-' + req.params.week,
+                headers: {
+                    'User-Agent': 'Request-Promise'
+                },
+            };
 
-    rp(options, function(error, response, html){
-        if(!error){
-            const $ = cheerio.load(html)
+            console.log('https://www.fff.fr/la-vie-des-clubs/' + req.params.club_id + '/agenda/semaine-' + req.params.week)
 
-            let championnat, date, team1, team2
+            request(options, function(error, response, html){
+                let json = {championnat: "", date: "", team1: "", team2: "", score: ""}
+                if(!error){
+                    const $ = cheerio.load(html)
 
-            console.log('on est ici')            
+                    let championnat, date, team1, team2
 
-            // We'll use the unique header class as a starting point.
+                    // We'll use the unique header class as a starting point.
 
-            $('h3').filter(function(){
+                    $('h3').filter(function(){
 
-           // Let's store the data we filter into a variable so we can easily see what's going on.
+                // Let's store the data we filter into a variable so we can easily see what's going on.
 
-                const data = $(this)
-                console.log(data)
+                        const data = $(this)
 
-                championnat = data.text();
-                if (championnat == 'EXCELLENCE SENIORS - POULE A') {
-                    json.championnat = championnat
-                    json.date = data.next().find('h4').text()
-                    json.team1 = data.next().find('.eqleft > a').text()
-                    json.team2 = data.next().find('.eqright > a').text()
-                    json.score = data.next().find('.score > .message').text()
-                    console.log(json)
+                        championnat = data.text();
+
+                        if (championnat == 'EXCELLENCE SENIORS - POULE A') {
+                            json.championnat = championnat
+                            json.date = data.next().find('h4').text()
+                            json.team1 = data.next().find('.eqleft > a').text()
+                            json.team2 = data.next().find('.eqright > a').text()
+                            json.score = data.next().find('.score > .message').text()
+
+                            fs.appendFile('output.json', JSON.stringify(json, null, 4) + ',', function(err){
+                                console.log(json)
+                                console.log('File successfully written! - Check your project directory for the output.json file');
+                            })
+                        }
+                    })
                 }
             })
-        }
-    }).then(
-        fs.writeFile('output.json', JSON.stringify(json, null, 4), function(err){
-            console.log('File successfully written! - Check your project directory for the output.json file');
-        })
-    )
 
+        }).then(function() {
+            fs.appendFile('output.json', ']', function(err) {
+                console.log('close array');
+            })            
+        })
+
+    })
+
+        
 })
+
+    
+    
+
 
 app.listen('8087')
 console.log('Magic happens on port 8087');
