@@ -2,6 +2,7 @@ var express = require('express');
 var fs = require('fs');
 var request = require('request');
 var cheerio = require('cheerio');
+var rp = require('request-promise');
 var app     = express();
 
 app.get('/scrape', function(req, res){
@@ -10,20 +11,29 @@ app.get('/scrape', function(req, res){
     
     url = 'https://www.fff.fr/la-vie-des-clubs/13313/agenda';
 
-    request(url, function(error, response, html){
+    var options = {
+    uri: 'https://www.fff.fr/la-vie-des-clubs/13313/agenda',
+    headers: {
+        'User-Agent': 'Request-Promise'
+    },
+};
+
+    rp(options, function(error, response, html){
         if(!error){
             const $ = cheerio.load(html)
 
             let championnat, date, team1, team2
-            
+
+            console.log('on est ici')            
 
             // We'll use the unique header class as a starting point.
 
-            $('.list_links > .item > .list_calendar h3').filter(function(){
+            $('h3').filter(function(){
 
            // Let's store the data we filter into a variable so we can easily see what's going on.
 
-                const data = $(this);
+                const data = $(this)
+                console.log(data)
 
                 championnat = data.text();
                 if (championnat == 'EXCELLENCE SENIORS - POULE A') {
@@ -36,12 +46,12 @@ app.get('/scrape', function(req, res){
                 }
             })
         }
-    })
+    }).then(
+        fs.writeFile('output.json', JSON.stringify(json, null, 4), function(err){
+            console.log('File successfully written! - Check your project directory for the output.json file');
+        })
+    )
 
-
-    fs.writeFile('output.json', JSON.stringify(json, null, 4), function(err){
-        console.log('File successfully written! - Check your project directory for the output.json file');
-    })
 })
 
 app.listen('8087')
