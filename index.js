@@ -2,7 +2,6 @@ const express = require('express');
 const fs = require('fs');
 const request = require('request-promise');
 const cheerio = require('cheerio');
-const q = require('q');
 const app = express();
 
 app.get('/scrape/club/:club_id/week/:week', function(req, res){
@@ -10,9 +9,6 @@ app.get('/scrape/club/:club_id/week/:week', function(req, res){
     res.setHeader('Content-Type', 'application/json');
 
     let result = '';
-    q.fcall(function() {
-        result += '[';
-    }).then(function() {
 
     const options = {
         uri: 'https://www.fff.fr/la-vie-des-clubs/' + req.params.club_id + '/agenda/semaine-' + req.params.week,
@@ -45,18 +41,13 @@ app.get('/scrape/club/:club_id/week/:week', function(req, res){
                     json.team2 = data.next().find('.eqright > a').text();
                     json.score = data.next().find('.score > .message').text();
 
-                    result += JSON.stringify(json, null, 4) + ',';
+                    result += JSON.stringify(json);
+                    res.send(result);
+                    return;
                 }
             })
         }
-    }).then(function() {
-        result = result.slice(0, -1);
-        result += ']';
-        res.send(result);
     })
-
-})
-
 })
 
     
